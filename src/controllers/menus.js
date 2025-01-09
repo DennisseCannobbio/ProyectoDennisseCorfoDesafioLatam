@@ -1,74 +1,79 @@
-const { Pool } = require('pg');
+const Menu = require('../models/Menu')
 
-// * CONNECTION TO DB
-const pool = new Pool({
-    user: 'denni',
-    host: 'localhost',
-    database: 'desafio-latam', 
-    password: '12345',
-    port: 5432,
-});
+//* GET ALL MENUS
+const getMenus = async (req, res) => {
+    try {
+        const menus = await Menu.findAll(); 
 
-pool.connect((err, client, release) => {
-    if (err) {
-        return console.error('An error has ocurred while connecting to db', err.stack);
-    }
-
-    client.query('SELECT NOW()', (err, result) => {
-        release(); 
-
-        if (err) {
-            return console.error('An error has ocurred while executing the query:', err.stack);
+        if(menus) {
+            res.status(200).json(menus);
+        } else {
+            res.status(404).json({ error: 'There are not menus on the database'})
         }
-
-        console.log('Connection successfull, database time:', result.rows[0].now);
-    });
-});
-
-
-// * CALLS TO DB * //
-const getMenus = async () => {
-    const { rows } = await pool.query('SELECT * FROM menus');
-    return rows;
-}
-
-const getMenuById = async(id) => {
-    const query = `SELECT * FROM menus WHERE id = $1`;
-    const params = [id]
-    const { rows } = await pool.query(query, params);
-    return rows;
-}
-
-const createMenu = async (name, description, price) => {
-    const query = `INSERT INTO menus (name, description, price)
-    VALUES ($1, $2, $3)`
-    const params = [name, description, price];
-    await pool.query(query, params);
-    console.log('Menu created!');
-}
-
-const updateMenu = async (id, name, description, price) => {
-    const query = `
-        UPDATE menus
-        SET name = $1, description = $2, price = $3
-        WHERE id = $4;
-    `;
-    params =  [name, description, price, id]
-    const res = await pool.query(query,params);
-    console.log('Menu updated!');
-    
+    } catch (error) {
+        res.status(500).json({ error: 'An error has ocurred while getting the menus' });
+    }
 };
 
-const deleteMenu = async (id) => {
-    const query = `
-        DELETE FROM menus WHERE id = $1
-    `;
-    params = [id]
-    const res = await pool.query(query, params);
-    console.log('Menu deleted!');
-    
+//* GET MENU BY ID
+const getMenuById = async (req, res) => {
+    try {
+        const menu = await Menu.findByPk(req.params.id)
+
+        if(menu) {
+            res.status(200).json(menu);
+        } else {
+            res.status(404).json({ error: 'Menu not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'An error has ocurred while getting the menu' });
+    }
 };
 
+//* CREATE MENU
+const createMenu = async (req, res) => {
+    try {
+        const { name, description, price } = req.body;
+        const newMenu = await Menu.create({ name, description, price });
+        res.status(201).json(newMenu);
+    } catch (error) {
+        res.status(500).json({ error: 'An error has ocurred while creating the menu' });
+    }
+}
+
+//* UPDATE MENU
+const updateMenu = async (req, res) => {
+    try {
+        const { name, description, price } = req.body;
+        const menu = await Menu.findByPk(req.params.id);
+
+        if (menu) {
+            menu.name = name;
+            menu.description = description;
+            menu.price = price;
+            await menu.save();
+            res.status(200).json(menu);
+        } else {
+            res.status(404).json({ error: 'Menu not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'An error has ocurred while updating the menu' });
+    }
+}
+
+const deleteMenu = async (req, res) => {
+    try {
+        const menu = await Menu.findByPk(req.params.id);
+        if (menu) {
+            await menu.destroy();
+            res.status(204).json(); 
+        } else {
+            res.status(404).json({ error: 'Menu not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'An error has ocurred while deleting the menu' });
+    }
+};
 module.exports = {
     getMenus,
     getMenuById,

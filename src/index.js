@@ -1,11 +1,18 @@
 const express = require('express');
 const app = express();
+const sequelize = require('./config/database'); 
 
 app.use(express.json());
+
 app.use('/api/menus', require('./routes/menus') );
 
-
-const port = process.env.DEFAULT_PORT || 3000;
-app.listen(port, console.log('Server listening on port 3000'));
-
-module.exports = app;
+sequelize.sync()
+    .then(() => {
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+            console.log(`Server listening on port    ${PORT}`);
+        });
+    })
+    .catch((error) => {
+        console.error('Sincronization error with database:', error);
+    });
