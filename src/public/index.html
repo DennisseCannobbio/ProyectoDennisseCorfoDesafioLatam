@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WebSocket Message System</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      socket.on("connect", () => {
+        console.log("Connected to server");
+        socket.emit("join", {
+          username: "User" + Math.floor(Math.random() * 1000),
+        });
+      });
+
+      socket.on("welcome", (data) => {
+        console.log("Welcome message:", data.message);
+      });
+
+      socket.on("newMessage", (message) => {
+        console.log("New message:", message);
+        const messagesDiv = document.getElementById("messages");
+        messagesDiv.innerHTML += `<p><strong>${message.username}:</strong> ${message.content}</p>`;
+      });
+
+      socket.on("userJoined", (data) => {
+        console.log("User has joined:", data);
+        updateUserList(data.onlineUsers);
+      });
+
+      socket.on("userLeft", (data) => {
+        console.log("User has left:", data);
+        updateUserList(data.onlineUsers);
+      });
+
+      function updateUserList(users) {
+        const userList = document.getElementById("userList");
+        userList.innerHTML = "<h3>Users online:</h3>";
+        users.forEach((user) => {
+          userList.innerHTML += `<div>${user.username}</div>`;
+        });
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const content = input.value.trim();
+        if (content) {
+          socket.emit("message", { content });
+          input.value = "";
+        }
+      }
+
+      socket.on("error", (error) => {
+        console.error("Server error:", error);
+      });
+
+      setInterval(() => {
+        socket.emit("ping");
+      }, 30000);
+    </script>
+  </head>
+  <body>
+    <div id="userList"></div>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Write a message..." />
+    <button onclick="sendMessage()">Send</button>
+  </body>
+</html>
